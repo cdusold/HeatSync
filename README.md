@@ -645,12 +645,40 @@ class Heat extends EventTarget {
 
         this.users = new Map();
         this.actions = new Map();
+
+        this.addEventListener('click', async(e) => {
+            let clickData = e.detail.data;
+            const clickMap = await this.obsSync.clickMap();
+            clickMap.forEach((name, bounds) => {
+                if (clickData.x < bounds.x1 || clickData.x > bounds.x2 ||
+                    clickData.y < bounds.y1 || clickData.y > bounds.y2) {
+                    return;
+                }
+                let clickX = (clickData.x - bounds.x3) * bounds.x4;
+                let clickY = (clickData.y - bounds.y3) * bounds.y4;
+                let tempName = actionName.replace("click!", "");
+                var calledAction = tempName.split("?")[0];
+                var args_ = tempName.split("?")[1];
+                if (this.actions.has(calledAction)) {
+                    let sendClick = JSON.parse(JSON.stringify(clickData));
+                    sendClick.x = clickX;
+                    sendClick.y = clickY;
+                    sendClick.target = calledAction;
+                    sendClick.args = args_;
+                    for (let arg of args_.split("&")) {
+                        let [key, value] = arg.split("=");
+                        sendClick[key] = value;
+                    }
+                    this.actions.get(calledAction)(sendClick);
+                }
+            });
+        });
     }
 
     connect() {
         let url = "wss://heat.prod.kr/" + this.channelId;
         this.log(`Connecting to ${url}.`);
-        let ws = openWebsocket(url, (message) => {
+        let ws = openWebSocket(url, (message) => {
             let data = JSON.parse(message.data);
             let event = new CustomEvent(data.type, { detail: data });
             // this.log("Event: " + JSON.stringify(event));
@@ -660,34 +688,6 @@ class Heat extends EventTarget {
             if (data.type == "system") {
                 this.log(data.type + " message: " + JSON.stringify(data));
             }
-
-            this.addEventListener('click', async(e) => {
-                let clickData = e.detail.data;
-                const clickMap = await this.obsSync.clickMap();
-                clickMap.forEach((name, bounds) => {
-                    if (clickData.x < bounds.x1 || clickData.x > bounds.x2 ||
-                        clickData.y < bounds.y1 || clickData.y > bounds.y2) {
-                        return;
-                    }
-                    let clickX = (clickData.x - bounds.x3) * bounds.x4;
-                    let clickY = (clickData.y - bounds.y3) * bounds.y4;
-                    let tempName = actionName.replace("click!", "");
-                    var calledAction = tempName.split("?")[0];
-                    var args_ = tempName.split("?")[1];
-                    if (this.actions.has(calledAction)) {
-                        let sendClick = JSON.parse(JSON.stringify(clickData));
-                        sendClick.x = clickX;
-                        sendClick.y = clickY;
-                        sendClick.target = calledAction;
-                        sendClick.args = args_;
-                        for (let arg of args_.split("&")) {
-                            let [key, value] = arg.split("=");
-                            sendClick[key] = value;
-                        }
-                        this.actions.get(calledAction)(sendClick);
-                    }
-                });
-            });
         });
     }
 
