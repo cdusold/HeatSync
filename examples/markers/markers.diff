@@ -1,0 +1,48 @@
+--- Markers.htm.old	Wed Nov  4 16:40:37 2026
++++ Markers.htm	Wed Nov  4 17:33:34 2026
+@@ -42,7 +42,7 @@
+                 animation: blinkWarning 1s linear infinite;
+             }</style></head>
+ 
+-<body class="demo vsc-initialized">
++<body class="vsc-initialized">
+ 
+     <script>
+         class Heat extends EventTarget {
+@@ -64,7 +64,7 @@
+                 }
+ 
+                 connect() {
+-                    let url = `wss://heat-api.j38.net/channel/${this.channelId}`;
++                    let url = "wss://heat.prod.kr/" + this.channelId;
+                     this.log(`Connecting to ${url}.`);
+                     let ws = new WebSocket(url);
+ 
+@@ -104,21 +104,21 @@
+                     if (this.users.has(id)) return this.users.get(id);
+ 
+                     // Ignore invalid names.
+-                    if (id.startsWith("A")) return { display_name: "Anonymous" };
+-                    if (id.startsWith("U")) return { display_name: "Unverified" };
++                    if (id.startsWith("A")) return { name: "Anonymous" };
++                    if (id.startsWith("U")) return { name: "Unverified" };
+ 
+                     // Query Twitch for user details.
+-                    const url = `https://heat-api.j38.net/user/${id}`;
++                    const url = `https://prod.kr/api/twitchprofilefromid?id=${id}`;
+ 
+                     // Handle response.
+                     let response = await fetch(url);
+                     if (response.ok) {
+-                        let data = await response.json();
++                        let data = (await response.json()).res;
+                         this.users.set(id, data);
+-                        this.log("User for id " + id + " found: " + data.display_name);
++                        this.log("User for id " + id + " found: " + data.name);
+                         return data;
+                     } else {
+-                        return { display_name: "Unknown" };
++                        return { name: "Unknown" };
+                     }
+                 }
+ 
